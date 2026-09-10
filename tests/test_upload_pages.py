@@ -53,3 +53,20 @@ class UploadPageTests(unittest.TestCase):
         self.assertEqual(self.req('/api/uploads/page', {},headers={'X-CSRF-Token':'bad'})[0],403)
         for payload in ({'page':0},{'page':True},{'page_size':10000},{'snapshot':-1},{'snapshot':True},{'query':'x'*201}):
             self.assertEqual(self.req('/api/uploads/page', payload)[0],400)
+
+    def test_combined_filters_vietnam_day_boundary(self):
+        from datetime import datetime, timezone
+        self.login(); self.seed()
+        self.broker.db.execute("INSERT INTO device_profiles VALUES('mac','NV01')")
+        for uid,stamp in [('u0','2026-09-09T17:00:00+00:00'),('u1','2026-09-10T16:59:59+00:00'),('u2','2026-09-10T17:00:00+00:00')]:
+            self.broker.db.execute('UPDATE uploads SET created=? WHERE id=?',(datetime.fromisoformat(stamp).timestamp(),uid))
+            self.broker.db.execute('INSERT INTO upload_routes VALUES(?,?,?,?,?,?,?)',(uid,'ch','TH9','Channel','VIDEO','clip.mp4','Channel/clip.mp4'))
+        self.broker.db.commit()
+        filters=dict(device='mac',employee='NV01',media='VIDEO',state='verified',date_from='2026-09-10',date_to='2026-09-10')
+        status,r,_=self.req('/api/uploads/page',filters)
+        self.assertEqual(status,200)
+        self.assertEqual({x['id'] for x in r['items']},{'u0','u1'})
+        self.assertEqual(self.req('/api/uploads/page',dict(filters,media='ANH'))[1]['total'],0)
+        self.assertEqual(self.req('/api/uploads/page',dict(filters,device='other'))[1]['total'],0)
+        for invalid in ({'date_from':'2026-99-01'},{'date_from':'2026-09-11','date_to':'2026-09-10'},{'media':'all'},{'device':12}):
+            self.assertEqual(self.req('/api/uploads/page',invalid)[0],400)

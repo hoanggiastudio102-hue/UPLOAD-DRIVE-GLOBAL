@@ -2,6 +2,7 @@
 import json
 import time
 from .common import ApiError
+from .alerts import sync_alert
 
 STATES = {"starting", "scanning", "hashing", "uploading", "verifying", "waiting", "error", "stopped"}
 TEXT = {"state": 20, "file": 500, "destination": 1000, "error": 300, "version": 30}
@@ -35,6 +36,8 @@ def save_status(broker, device, payload):
     with broker.lock:
         broker.db.execute("INSERT OR REPLACE INTO device_status VALUES(?,?,?)",
                           (device, time.time(), json.dumps(payload, ensure_ascii=False)))
+        row = broker.db.execute('SELECT revoked FROM devices WHERE id=?', (device,)).fetchone()
+        sync_alert(broker, device, payload, time.time(), bool(row and row['revoked']))
         broker.db.commit()
     return {"ok": True}
 
@@ -43,12 +46,14 @@ def list_status(broker):
         rows = broker.db.execute("""SELECT d.id,d.name,d.revoked,s.received,s.payload,
             (SELECT count(*) FROM uploads u WHERE u.device=d.id AND u.state='verified') confirmed
             FROM devices d LEFT JOIN device_status s ON s.device=d.id ORDER BY d.created DESC""").fetchall()
-    result = []
-    for row in rows:
-        item = dict(row)
-        item["status"] = json.loads(item.pop("payload")) if item["payload"] else {}
-        item["online"] = item["received"] is not None and time.time() - item["received"] <= 60
-        result.append(item)
+        result = []
+        for row in rows:
+            item = dict(row)
+            item["status"] = json.loads(item.pop("payload")) if item["payload"] else {}
+            item["online"] = item["received"] is not None and time.time() - item["received"] <= 60
+            item['alert'] = sync_alert(broker, item['id'], item['status'], item['received'], item['revoked'])
+            result.append(item)
+        broker.db.commit()
     return result
 
 def list_articles(broker):

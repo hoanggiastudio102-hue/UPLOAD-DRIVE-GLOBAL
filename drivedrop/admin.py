@@ -18,6 +18,7 @@ from . import __version__
 from .common import ApiError, atomic_json, canonical_json, load_json
 from .monitoring import list_status, list_articles
 from .reporting import add_reports, save_profile
+from .alerts import acknowledge
 
 DEVICE_PATHS = {"/enroll", "/heartbeat", "/uploads", "/verify", "/uploads/restart"}
 ASSETS = {"/": ("index.html", "text/html"), "/app.js": ("app.js", "text/javascript"), "/reports.js": ("reports.js", "text/javascript"),
@@ -294,6 +295,8 @@ class WebAdmin:
                 if post:
                     if not hmac.compare_digest(self.headers.get("X-CSRF-Token", ""), session["csrf"]):
                         raise ApiError("Phiên làm việc không hợp lệ. Tải lại trang.", 403)
+                    if self.path == "/api/alerts/acknowledge":
+                        return self.reply(200, acknowledge(owner.broker, payload))
                     if self.path == "/api/uploads/page":
                         return self.reply(200, owner.broker.upload_page(payload))
                     if self.path == "/api/logout":

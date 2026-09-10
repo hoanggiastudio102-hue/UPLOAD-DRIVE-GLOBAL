@@ -54,6 +54,8 @@ class Broker:
             CREATE TABLE IF NOT EXISTS upload_context(upload_id TEXT PRIMARY KEY,
                 source_folders TEXT NOT NULL);
             CREATE TABLE IF NOT EXISTS device_status(device TEXT PRIMARY KEY, received REAL NOT NULL, payload TEXT NOT NULL);
+            CREATE TABLE IF NOT EXISTS device_alerts(device TEXT PRIMARY KEY, token TEXT NOT NULL, kind TEXT NOT NULL, message TEXT NOT NULL,
+                first_seen REAL NOT NULL,last_seen REAL NOT NULL,acknowledged INTEGER NOT NULL,ack_queued INTEGER NOT NULL,ack_failed INTEGER NOT NULL,queued INTEGER NOT NULL,failed INTEGER NOT NULL);
             CREATE TABLE IF NOT EXISTS employees(id TEXT PRIMARY KEY, name TEXT NOT NULL);
             CREATE TABLE IF NOT EXISTS device_profiles(device TEXT PRIMARY KEY, employee_id TEXT NOT NULL);
             CREATE TABLE IF NOT EXISTS upload_verified(upload_id TEXT PRIMARY KEY, verified_at REAL NOT NULL);
@@ -102,6 +104,19 @@ class Broker:
                 or not isinstance(query, str) or len(query) > 200
                 or snapshot is not None and (type(snapshot) is not int or not 0 <= snapshot <= 9223372036854775807)):
             raise ApiError('Tham số trang lịch sử không hợp lệ.', 400)
+        filters = {key: payload.get(key, '') for key in ('device', 'employee', 'media', 'state', 'date_from', 'date_to')}
+        if any(not isinstance(v, str) or len(v) > 100 for v in filters.values()) or filters['media'] not in ('', 'ANH', 'VIDEO') or filters['state'] not in ('', 'issued', 'verified'):
+            raise ApiError('Bộ lọc lịch sử không hợp lệ.', 400)
+        from datetime import datetime, timedelta, timezone
+        bounds = {}
+        for key in ('date_from', 'date_to'):
+            if filters[key]:
+                try:
+                    bounds[key] = datetime.strptime(filters[key], '%Y-%m-%d').replace(tzinfo=timezone(timedelta(hours=7)))
+                except ValueError:
+                    raise ApiError('Ngày lọc không hợp lệ.', 400)
+        if len(bounds) == 2 and bounds['date_from'] > bounds['date_to']:
+            raise ApiError('Ngày bắt đầu phải trước hoặc bằng ngày kết thúc.', 400)
         with self.lock:
             self.db.create_function('history_fold', 1, lambda value: str(value or '').casefold())
             if snapshot is None:
@@ -113,6 +128,19 @@ class Broker:
             if query.strip():
                 where += " AND instr(history_fold(coalesce(u.name,'') || ' ' || coalesce(d.name,'') || ' ' || coalesce(r.destination,'') || ' ' || u.device || ' ' || u.state),?) > 0"
                 parameters.append(query.strip().casefold())
+            for key, column in (('device', 'u.device'), ('media', 'r.media_kind'), ('state', 'u.state')):
+                if filters[key]:
+                    where += ' AND ' + column + '=?'
+                    parameters.append(filters[key])
+            if filters['employee']:
+                where += ' AND EXISTS(SELECT 1 FROM device_profiles p WHERE p.device=u.device AND p.employee_id=?)'
+                parameters.append(filters['employee'])
+            if 'date_from' in bounds:
+                where += ' AND u.created>=?'
+                parameters.append(bounds['date_from'].timestamp())
+            if 'date_to' in bounds:
+                where += ' AND u.created<?'
+                parameters.append((bounds['date_to']+timedelta(days=1)).timestamp())
             total = self.db.execute('SELECT count(*)' + joins + where, parameters).fetchone()[0]
             pages = max(1, (total + count - 1) // count)
             page = min(page, pages)

@@ -1,12 +1,12 @@
 'use strict';
-const openedDevices=new Set(), folderQueries=new Map(), folderLimits=new Map();
+const openedDevices=new Set(), folderQueries=new Map(), folderLimits=new Map(), folderFilters=new Map(), folderSorts=new Map();
 let deviceFilter='active', devicePage=0;
 const number=n=>(n??0).toLocaleString('vi-VN');
-function needsAttention(d){return !d.online||['error','stopped'].includes(d.status.state)||d.status.failed>0;}
-function stateBadge(d){const s=d.status;return badge(d.revoked?'Đã khóa':!d.received?'Chưa gửi trạng thái':!d.online?'Mất kết nối':labels[s.state]||'Đang kết nối',d.revoked?'':!d.online?'warn':s.state==='error'?'bad':'good');}
+function needsAttention(d){return !!d.alert&&!d.alert.acknowledged;}
+function stateBadge(d){if(d.alert?.acknowledged)return badge('Đã xem · còn chờ xử lý');const s=d.status;return badge(d.revoked?'Đã khóa':!d.received?'Chưa gửi trạng thái':!d.online?'Mất kết nối':labels[s.state]||'Đang kết nối',d.revoked?'':!d.online?'warn':s.state==='error'?'bad':'good');}
 function reportStats(){
  const s=data.report.summary,stats=$('#report-stats');stats.replaceChildren();
- const entries=[['Nhân viên',s.employees,s.unassigned?`${s.unassigned} máy chưa gán nhân viên`:'Đếm theo mã nhân viên'],['Máy đang kết nối',`${s.online} / ${s.devices}`,'Trên tổng máy được cấp quyền'],['Cần kiểm tra',s.attention,'Mất kết nối, dừng hoặc có lỗi'],['Đã lên Drive hôm nay',s.today_files,`${number(s.today_images)} ảnh · ${number(s.today_videos)} video`],['Thư mục trên máy',s.folders,`${s.inventory_machines} / ${s.devices} máy có báo cáo`],['Ảnh / video trên máy',`${number(s.images)} / ${number(s.videos)}`,`${size(s.bytes)} · theo lần quét gần nhất`]];
+ const entries=[['Nhân viên',s.employees,s.unassigned?`${s.unassigned} máy chưa gán nhân viên`:'Đếm theo mã nhân viên'],['Máy đang kết nối',`${s.online} / ${s.devices}`,'Trên tổng máy được cấp quyền'],['Cần kiểm tra',s.attention,`${s.acknowledged||0} máy đã xem / tạm ẩn`],['Đã lên Drive hôm nay',s.today_files,`${number(s.today_images)} ảnh · ${number(s.today_videos)} video`],['Thư mục trên máy',s.folders,`${s.inventory_machines} / ${s.devices} máy có báo cáo`],['Ảnh / video trên máy',`${number(s.images)} / ${number(s.videos)}`,`${size(s.bytes)} · theo lần quét gần nhất`]];
  for(const [title,value,detail] of entries){const a=el('article');a.append(el('span',title),el('strong',typeof value==='number'?number(value):value),el('small',detail));stats.append(a);}
  const overview=$('#report-overview');overview.replaceChildren();overview.hidden=tab!=='devices';
  if(tab!=='devices')return;
@@ -16,7 +16,7 @@ function reportStats(){
  trend.append(chart,el('p','Chỉ tính tệp xác minh sau khi nâng cấp báo cáo. Không tính máy đã khóa.','hint'));
  const alerts=el('section',undefined,'report-box'),aHead=el('div',undefined,'section-heading');aHead.append(el('h2','Tình hình đội ngũ'),button('Xem máy cần kiểm tra',()=>{deviceFilter='attention';devicePage=0;render();},'quiet'));alerts.append(aHead);
  const active=data.devices.filter(d=>!d.revoked),working=active.filter(d=>d.online&&['uploading','hashing','scanning','verifying'].includes(d.status.state)).length;
- for(const [label,value,kind] of [['Đang xử lý tệp',working,'good'],['Mất kết nối / chưa chạy',active.filter(d=>!d.online).length,'warn'],['Đang báo lỗi',active.filter(d=>d.status.state==='error'||d.status.failed>0).length,'bad'],['Báo cáo thư mục còn mới',`${s.inventory_fresh} / ${s.devices}`,'good']]){const r=el('div',undefined,'health-row');r.append(el('span',label),badge(String(value),kind));alerts.append(r);}
+ for(const [label,value,kind] of [['Đang xử lý tệp',working,'good'],['Mất kết nối / chưa chạy',active.filter(d=>needsAttention(d)&&!d.online).length,'warn'],['Đang báo lỗi',active.filter(d=>needsAttention(d)&&d.alert.kind==='error').length,'bad'],['Đã xem / tạm ẩn',s.acknowledged||0,''],['Báo cáo thư mục còn mới',`${s.inventory_fresh} / ${s.devices}`,'good']]){const r=el('div',undefined,'health-row');r.append(el('span',label),badge(String(value),kind));alerts.append(r);}
  if(s.inventory_partial)alerts.append(el('p',`${s.inventory_partial} máy quét chưa đầy đủ. Tổng thư mục và ảnh/video mới tính phần đã quét được.`,'hint'));
  alerts.append(el('p','Trạng thái phản ánh ứng dụng gửi file, không đo thời gian làm việc của nhân viên.','hint'));overview.append(trend,alerts);
 }
@@ -33,7 +33,12 @@ function renderFolders(d,box){
  box.append(bar);
  const total=d.inventory_totals,summary=el('div',undefined,'inventory-summary');summary.append(el('span',`${number(total.images)} ảnh`),el('span',`${number(total.videos)} video`),el('span',`${number(total.other)} tệp khác`),el('span',size(total.bytes)));box.append(summary);
  const search=el('input');search.placeholder='Tìm thư mục trong máy này…';search.setAttribute('aria-label','Tìm thư mục '+d.name);search.value=folderQueries.get(d.id)||'';search.dataset.folderSearch=d.id;search.oninput=()=>{folderQueries.set(d.id,search.value);folderLimits.set(d.id,50);render();};box.append(search);
- const q=search.value.trim().toLocaleLowerCase(),filtered=inv.folders.filter(f=>f.path.toLocaleLowerCase().includes(q)),limit=folderLimits.get(d.id)||50;
+ const tools=el('div',undefined,'folder-tools');
+ const addSelect=(title,options,value,change)=>{const label=el('label',title),select=el('select');select.setAttribute('aria-label',title+' '+d.name);for(const [v,text] of options){const o=el('option',text);o.value=v;o.selected=v===value;select.append(o);}select.onchange=()=>{change(select.value);folderLimits.set(d.id,50);render();};label.append(select);tools.append(label);};
+ addSelect('Thư mục có',[['all','Tất cả thư mục'],['images','Ảnh'],['videos','Video'],['queued','File đang chờ'],['empty','Không có file đã quét']],folderFilters.get(d.id)||'all',v=>folderFilters.set(d.id,v));
+ addSelect('Sắp xếp',[['name','Tên thư mục'],['bytes','Dung lượng giảm dần'],['files','Số file giảm dần'],['queued','Hàng đợi giảm dần']],folderSorts.get(d.id)||'name',v=>folderSorts.set(d.id,v));box.append(tools,el('p','Đây là số liệu lần quét gần nhất. Xem lịch sử máy này để lọc upload theo ngày.','hint'));
+ const q=search.value.trim().toLocaleLowerCase(),kind=folderFilters.get(d.id)||'all',order=folderSorts.get(d.id)||'name',filtered=inv.folders.filter(f=>f.path.toLocaleLowerCase().includes(q)&&(kind==='all'||kind==='empty'?(kind!=='empty'||f.images+f.videos+f.other===0):f[kind]>0)),limit=folderLimits.get(d.id)||50;
+ filtered.sort((a,b)=>order==='name'?a.path.localeCompare(b.path,'vi'):order==='files'?(b.images+b.videos+b.other)-(a.images+a.videos+a.other):b[order]-a[order]);
  box.append(table(['Thư mục','Ảnh','Video','Tệp khác','Dung lượng','Trong hàng đợi'],filtered.slice(0,limit).map(f=>{const path=el('span',f.path==='.'?'Tệp ngay trong thư mục gốc':f.path,'folder-path');return [cell(path),number(f.images),number(f.videos),number(f.other),size(f.bytes),number(f.queued)];})));
  if(!filtered.length)box.append(el('p','Không có thư mục khớp từ khóa.','hint'));
  if(filtered.length>limit)box.append(button(`Xem thêm (${filtered.length-limit} thư mục)`,()=>{folderLimits.set(d.id,limit+50);render();}));
@@ -50,14 +55,15 @@ function machineCard(d){
  activity.append(el('strong',s.file||'Chưa có tệp đang xử lý'),el('small',s.destination||`Phiên bản Mac: ${s.version||'Chưa có'}`));
  if(s.size){const progress=el('progress');progress.max=100;progress.value=p;progress.setAttribute('aria-label',`Tiến độ ${d.name}: ${p}%`);activity.append(progress,el('span',`${p}% · ${size(s.sent)} / ${size(s.size)}`));}
  activity.append(el('small',`Hàng đợi: ${number(s.queued)} · Tệp cần kiểm tra: ${number(s.failed)} · ${labels[s.state]||'Chưa hoạt động'}`));
- if(s.error)activity.append(el('p',s.error,'error'));body.append(activity);
- const actions=el('div',undefined,'device-actions');actions.append(button('Gán nhân viên / đổi tên máy',()=>profileDialog(d)));
+ if(s.error&&!d.alert)activity.append(el('p',s.error,'error'));body.append(activity);
+ if(d.alert){const a=d.alert,info=el('section',undefined,'alert-info');info.append(el('strong',a.acknowledged?'Đã xem / tạm ẩn — chưa xử lý xong':'Cảnh báo cần kiểm tra'),el('p',a.message),el('small',`Ghi nhận từ ${when(a.first_seen)} · Gần nhất ${when(a.last_seen)}`),el('small',`${number(s.queued)} file trong hàng đợi · ${number(s.failed)} file cần kiểm tra`));info.append(button(a.acknowledged?'Hiện lại cảnh báo':'Đã xem / Tạm ẩn',()=>act('/api/alerts/acknowledge',{id:d.id,token:a.token,hidden:!a.acknowledged},a.acknowledged?'Đã hiện lại cảnh báo.':'Đã chuyển sang nhóm Đã xem / tạm ẩn. File chờ được giữ nguyên.')));body.append(info);}
+ const actions=el('div',undefined,'device-actions');actions.append(button('Xem lịch sử máy này',()=>showMachineHistory(d)));actions.append(button('Gán nhân viên / đổi tên máy',()=>profileDialog(d)));
  if(!d.revoked)actions.append(button('Khóa máy',()=>{if(confirm(`Khóa ${d.name}? Máy này sẽ không được cấp phiên upload và xác minh mới.`))act('/api/revoke',{id:d.id},'Đã khóa máy.');}));body.append(actions);
  let loaded=details.open;if(loaded)renderFolders(d,body);details.ontoggle=()=>{if(details.open){openedDevices.add(d.id);if(!loaded){renderFolders(d,body);loaded=true;}}else openedDevices.delete(d.id);};details.append(body);return details;
 }
 function renderDevices(content,q){
- const filters=el('div',undefined,'report-filters');for(const [id,label] of [['active','Đang được cấp quyền'],['online','Đang kết nối'],['attention','Cần kiểm tra'],['unassigned','Chưa gán nhân viên'],['revoked','Đã khóa']]){const b=button(label,()=>{deviceFilter=id;devicePage=0;render();},deviceFilter===id?'selected quiet':'quiet');b.setAttribute('aria-pressed',String(deviceFilter===id));filters.append(b);}content.append(filters);
- const rows=data.devices.filter(d=>deviceFilter==='revoked'?d.revoked:!d.revoked&&(deviceFilter==='active'||deviceFilter==='online'&&d.online||deviceFilter==='attention'&&needsAttention(d)||deviceFilter==='unassigned'&&!d.employee_code)).filter(d=>[d.name,d.employee_code,d.employee_name,...(d.status.inventory?.folders.map(f=>f.path)||[])].join(' ').toLocaleLowerCase().includes(q));
+ const filters=el('div',undefined,'report-filters');for(const [id,label] of [['active','Đang được cấp quyền'],['online','Đang kết nối'],['attention','Cần kiểm tra'],['acknowledged','Đã xem / tạm ẩn'],['unassigned','Chưa gán nhân viên'],['revoked','Đã khóa']]){const b=button(label,()=>{deviceFilter=id;devicePage=0;render();},deviceFilter===id?'selected quiet':'quiet');b.setAttribute('aria-pressed',String(deviceFilter===id));filters.append(b);}content.append(filters);
+ const rows=data.devices.filter(d=>deviceFilter==='revoked'?d.revoked:!d.revoked&&(deviceFilter==='active'||deviceFilter==='online'&&d.online||deviceFilter==='attention'&&needsAttention(d)||deviceFilter==='acknowledged'&&d.alert?.acknowledged||deviceFilter==='unassigned'&&!d.employee_code)).filter(d=>[d.name,d.employee_code,d.employee_name,...(d.status.inventory?.folders.map(f=>f.path)||[])].join(' ').toLocaleLowerCase().includes(q));
  if(!rows.length){content.append(empty(q?'Không tìm thấy máy phù hợp':deviceFilter==='active'?'Chưa có máy nhân viên':'Không có máy trong nhóm này',deviceFilter==='active'?'Cấp file kích hoạt rồi nhập trên Mac. Sau khi máy kết nối, gán mã nhân viên để báo cáo tổng nhân sự chính xác.':'Thử chọn nhóm khác hoặc xóa từ khóa tìm kiếm.',deviceFilter==='active'&&!q?button('Cấp máy đầu tiên',()=>$('#enroll-dialog').showModal(),'primary'):null));return rows;}
  rows.sort((a,b)=>(a.employee_code||'\uffff').localeCompare(b.employee_code||'\uffff')||a.name.localeCompare(b.name, 'vi'));
  devicePage=Math.min(devicePage,Math.ceil(rows.length/20)-1);const page=rows.slice(devicePage*20,devicePage*20+20),groups=new Map();
