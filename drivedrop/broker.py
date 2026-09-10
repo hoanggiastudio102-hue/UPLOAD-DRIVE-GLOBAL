@@ -94,6 +94,35 @@ class Broker:
                 FROM uploads u LEFT JOIN upload_routes r ON r.upload_id=u.id
                 ORDER BY u.created DESC LIMIT 100""")]
 
+    def upload_page(self, payload):
+        page, count = payload.get('page', 1), payload.get('page_size', 25)
+        query, snapshot = payload.get('query', ''), payload.get('snapshot')
+        if (type(page) is not int or not 1 <= page <= 1000000000
+                or type(count) is not int or count not in (25, 50, 100)
+                or not isinstance(query, str) or len(query) > 200
+                or snapshot is not None and (type(snapshot) is not int or not 0 <= snapshot <= 9223372036854775807)):
+            raise ApiError('Tham số trang lịch sử không hợp lệ.', 400)
+        with self.lock:
+            self.db.create_function('history_fold', 1, lambda value: str(value or '').casefold())
+            if snapshot is None:
+                snapshot = self.db.execute('SELECT coalesce(max(rowid),0) FROM uploads').fetchone()[0]
+            joins = ''' FROM uploads u LEFT JOIN upload_routes r ON r.upload_id=u.id
+                LEFT JOIN devices d ON d.id=u.device'''
+            where = ' WHERE u.rowid <= ?'
+            parameters = [snapshot]
+            if query.strip():
+                where += " AND instr(history_fold(coalesce(u.name,'') || ' ' || coalesce(d.name,'') || ' ' || coalesce(r.destination,'') || ' ' || u.device || ' ' || u.state),?) > 0"
+                parameters.append(query.strip().casefold())
+            total = self.db.execute('SELECT count(*)' + joins + where, parameters).fetchone()[0]
+            pages = max(1, (total + count - 1) // count)
+            page = min(page, pages)
+            rows = self.db.execute('''SELECT u.id,u.device,u.name,u.size,u.state,u.created,
+                d.name AS device_name,r.channel_code,r.channel_name,r.media_kind,r.destination'''
+                + joins + where + ' ORDER BY u.created DESC,u.rowid DESC LIMIT ? OFFSET ?',
+                parameters + [count, (page - 1) * count]).fetchall()
+            return dict(items=[dict(row) for row in rows], total=total, page=page,
+                        page_size=count, pages=pages, snapshot=snapshot)
+
     def sync_channel_folders(self, log=lambda message: None):
         """Prepare the folders on Drive. Catalog edits themselves remain local."""
         channels = [row for row in self.channels.list_channels() if row["enabled"]]

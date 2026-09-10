@@ -294,6 +294,8 @@ class WebAdmin:
                 if post:
                     if not hmac.compare_digest(self.headers.get("X-CSRF-Token", ""), session["csrf"]):
                         raise ApiError("Phiên làm việc không hợp lệ. Tải lại trang.", 403)
+                    if self.path == "/api/uploads/page":
+                        return self.reply(200, owner.broker.upload_page(payload))
                     if self.path == "/api/logout":
                         with owner.lock:
                             owner.sessions.pop(key, None)
