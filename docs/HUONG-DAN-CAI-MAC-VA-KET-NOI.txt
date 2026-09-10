@@ -1,7 +1,7 @@
 DRIVEDROP MAC 0.5.0 — CÀI VÀ KẾT NỐI NHÂN VIÊN
 
 Địa chỉ máy chủ: https://drive.vinhglobal.vn
-Gói dùng: DriveDrop-Mac-0.5.0.zip
+Gói dùng: DriveDrop-Mac-0.5.0.zip hoặc DriveDrop-Mac-0.5.0-r2.zip (cùng mã ứng dụng).
 
 NETBIRD CÓ CẦN BẬT KHÔNG?
 
@@ -14,7 +14,7 @@ A. CHUẨN BỊ TRÊN MAC (LÀM TRƯỚC KHI CẤP MÃ)
 1. Sếp gửi nguyên file DriveDrop-Mac-0.5.0.zip sang Mac. Đường dẫn C:\... trong cuộc trò chuyện chỉ là vị trí file trên máy Windows, không phải link tải công khai cho nhân viên.
 2. Trên Mac, bấm đúp ZIP để giải nén. Kéo DriveDrop Employee.app vào Applications (Ứng dụng). Mở ứng dụng từ đó.
 3. Bản này cần Python 3.12 trở lên có Tkinter. Nếu báo thiếu Python, bấm Mở trang tải hoặc vào https://www.python.org/downloads/macos/ . Chọn bản ổn định có bộ cài macOS .pkg / universal2, cài mặc định. Không cần dùng Terminal để gõ lệnh.
-4. Khi cài Python xong, mở thư mục Applications/Python 3.x và chạy Install Certificates.command theo hướng dẫn của Python. Sau đó mở lại DriveDrop Employee.app.
+4. Nếu dùng bộ cài Python chính thức có Install Certificates.command, mở thư mục Applications/Python 3.x và chạy tệp đó theo hướng dẫn của Python. Với Homebrew có Tk và HTTPS hoạt động, không cần tìm lệnh này. DriveDrop tự chuẩn bị cryptography và certifi trong môi trường riêng. Sau đó mở lại DriveDrop Employee.app.
 5. Lần mở đầu tiên, ứng dụng chuẩn bị môi trường và tải thư viện; để Mac kết nối Internet, chờ đến cửa sổ DriveDrop — Máy nhân viên.
 6. Gói DriveDrop chưa ký/notarize Apple. Nếu macOS chỉ báo không xác minh được nhà phát triển, với đúng gói sếp vừa nhận: sau khi thử mở, vào Apple menu → System Settings → Privacy & Security → kéo xuống Security → Open Anyway, rồi xác nhận mở ứng dụng. Nếu máy công ty chặn bằng chính sách quản trị, nhờ người quản trị hỗ trợ.
 
@@ -42,10 +42,13 @@ D. NẾU MAC ĐÃ DÙNG BẢN DRIVEDROP CŨ
 
 ĐÃ KIỂM TRA / CÒN CẦN THỬ
 
-Gói ZIP, mã chương trình và kết nối HTTPS với máy chủ đã được kiểm tra trên Windows. Chưa chạy trực tiếp trên macOS thật. Cài thử một Mac, kiểm tra upload và đếm thư mục trước khi phát cho toàn bộ nhân viên.
+Gói ZIP, mã chương trình và kết nối HTTPS với máy chủ đã được kiểm tra trên Windows. Đã nhận bàn giao ứng dụng mở được trên Mac và ảnh kiểm tra kết nối thành công; chưa đủ bằng chứng upload E2E và chạy nền sau đăng nhập lại. Kiểm tra các bước đó trước khi phát toàn bộ.
 
 THAM KHẢO CHÍNH THỨC
 Cloudflare public hostname: https://developers.cloudflare.com/tunnel/setup/
 Python trên macOS: https://docs.python.org/3/using/mac.html
 Mở ứng dụng chưa xác minh trên Mac: https://support.apple.com/en-gb/guide/mac-help/mh40616/mac
 NetBird chạy nền: https://docs.netbird.io/help/troubleshooting-client
+
+CẬP NHẬT BÀN GIAO MAC
+Đã đối chiếu ứng dụng từ Mac: 10/10 tệp giống bản 0.5.0. Bên Mac báo mở được GUI trên Apple Silicon/Homebrew Python có Tk; ảnh hỗ trợ xác nhận đổi máy chủ và kết nối Google thành công. Chưa có bằng chứng đầy đủ cho upload và chạy nền sau đăng nhập lại. Xem MAC-DONG-GOI-VA-BAN-GIAO.md.
