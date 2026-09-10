@@ -1,0 +1,4 @@
+# Runtime: Python 3.12 or later. Tkinter comes from the Python OS installer.
+cryptography>=46.0.0,<51
+
+certifi>=2025.1.31

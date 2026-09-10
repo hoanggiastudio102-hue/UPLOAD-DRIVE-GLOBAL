@@ -1,0 +1,4 @@
+-r requirements.txt
+pyinstaller>=6.15,<7
+pystray==0.19.5; sys_platform == 'win32'
+Pillow>=11,<13; sys_platform == 'win32'

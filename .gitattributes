@@ -1,0 +1,11 @@
+* text=auto
+*.py text eol=lf
+*.command text eol=lf
+*.sh text eol=lf
+*.md text eol=lf
+*.txt text eol=lf
+*.html text eol=lf
+*.js text eol=lf
+*.css text eol=lf
+*.plist text eol=lf
+packaging/mac/Contents/MacOS/DriveDrop text eol=lf

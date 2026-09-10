@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleDisplayName</key>
+	<string>DriveDrop Employee</string>
+	<key>CFBundleExecutable</key>
+	<string>DriveDrop</string>
+	<key>CFBundleIdentifier</key>
+	<string>local.drivedrop.employee.launcher</string>
+	<key>CFBundleInfoDictionaryVersion</key>
+	<string>6.0</string>
+	<key>CFBundleName</key>
+	<string>DriveDrop Employee</string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<key>CFBundleShortVersionString</key>
+	<string>0.5.0</string>
+	<key>CFBundleVersion</key>
+	<string>6</string>
+	<key>LSApplicationCategoryType</key>
+	<string>public.app-category.productivity</string>
+	<key>NSDesktopFolderUsageDescription</key>
+	<string>Upload ảnh/video trong thư mục bạn chọn lên Drive của công ty.</string>
+	<key>NSDocumentsFolderUsageDescription</key>
+	<string>Upload ảnh/video trong thư mục bạn chọn lên Drive của công ty.</string>
+	<key>NSDownloadsFolderUsageDescription</key>
+	<string>Upload ảnh/video trong thư mục bạn chọn lên Drive của công ty.</string>
+	<key>NSHighResolutionCapable</key>
+	<true/>
+</dict>
+</plist>

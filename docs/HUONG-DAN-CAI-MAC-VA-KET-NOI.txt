@@ -1,0 +1,51 @@
+DRIVEDROP MAC 0.5.0 — CÀI VÀ KẾT NỐI NHÂN VIÊN
+
+Địa chỉ máy chủ: https://drive.vinhglobal.vn
+Gói dùng: DriveDrop-Mac-0.5.0.zip
+
+NETBIRD CÓ CẦN BẬT KHÔNG?
+
+Với cấu hình hiện tại, DriveDrop kết nối qua tên miền công khai và Cloudflare Tunnel, không cần NetBird. Mac chỉ cần Internet. Không phải nhập IP 192.168.1.105 hoặc IP NetBird.
+Máy Windows của sếp phải bật, có Internet, chạy DriveDrop Boss và dịch vụ Cloudflare Tunnel. Mac nhân viên phải bật, có Internet và DriveDrop đang chạy; máy ngủ/tắt thì không tiếp tục upload trong thời gian đó.
+Nếu một công cụ khác dùng IP riêng của NetBird, NetBird phải ở trạng thái Connected. Dịch vụ có thể chạy nền, không cần giữ cửa sổ NetBird mở. Không thay đổi NetBird của các công cụ khác khi cài DriveDrop.
+
+A. CHUẨN BỊ TRÊN MAC (LÀM TRƯỚC KHI CẤP MÃ)
+
+1. Sếp gửi nguyên file DriveDrop-Mac-0.5.0.zip sang Mac. Đường dẫn C:\... trong cuộc trò chuyện chỉ là vị trí file trên máy Windows, không phải link tải công khai cho nhân viên.
+2. Trên Mac, bấm đúp ZIP để giải nén. Kéo DriveDrop Employee.app vào Applications (Ứng dụng). Mở ứng dụng từ đó.
+3. Bản này cần Python 3.12 trở lên có Tkinter. Nếu báo thiếu Python, bấm Mở trang tải hoặc vào https://www.python.org/downloads/macos/ . Chọn bản ổn định có bộ cài macOS .pkg / universal2, cài mặc định. Không cần dùng Terminal để gõ lệnh.
+4. Khi cài Python xong, mở thư mục Applications/Python 3.x và chạy Install Certificates.command theo hướng dẫn của Python. Sau đó mở lại DriveDrop Employee.app.
+5. Lần mở đầu tiên, ứng dụng chuẩn bị môi trường và tải thư viện; để Mac kết nối Internet, chờ đến cửa sổ DriveDrop — Máy nhân viên.
+6. Gói DriveDrop chưa ký/notarize Apple. Nếu macOS chỉ báo không xác minh được nhà phát triển, với đúng gói sếp vừa nhận: sau khi thử mở, vào Apple menu → System Settings → Privacy & Security → kéo xuống Security → Open Anyway, rồi xác nhận mở ứng dụng. Nếu máy công ty chặn bằng chính sách quản trị, nhờ người quản trị hỗ trợ.
+
+B. SẾP CẤP KẾT NỐI TRÊN WEB
+
+7. Khi Mac đã mở được ứng dụng, sếp đăng nhập https://drive.vinhglobal.vn bằng tài khoản quản trị.
+8. Vào Tổng quan nhân viên → + Cấp máy nhân viên. Nhập tên máy dễ nhớ, ví dụ Mac01. Bấm Tạo và tải file kích hoạt.
+9. Gửi riêng file DriveDrop-kich-hoat.json cho đúng nhân viên. Mỗi mã chỉ dùng một lần và hết hạn sau 15 phút; mỗi Mac cần một file kích hoạt riêng. Nếu quá hạn, sếp tạo file mới.
+
+C. NHÂN VIÊN KẾT NỐI VÀ CHẠY THỬ
+
+10. Trên Mac, bấm 1. Nhập file kích hoạt → chọn JSON sếp cấp. Chờ nhật ký báo Kích hoạt thành công. Nhân viên không đăng nhập Gmail tổng và không cần tài khoản quản trị web.
+11. Bấm Kiểm tra kết nối. Cần thấy Kết nối máy chủ thành công; nếu lỗi, kiểm tra Internet và file kích hoạt trước, báo sếp nội dung lỗi.
+12. Ở 2. Thư mục ảnh/video, bấm Chọn… và chọn thư mục gốc muốn gửi, ví dụ TAI_NGUYEN. Để các thư mục bài bên trong như Bai01, Bai02…; DriveDrop quét cả thư mục con. Một máy chọn một thư mục gốc; các thư mục cần theo dõi đặt bên trong đó.
+13. Lần thử đầu, dùng một ảnh nhỏ đã lưu xong. Giữ ô Tự xóa bản local sau khi máy chủ xác minh... KHÔNG được tích. Không chọn ngay toàn bộ thư mục đang chứa hàng nghìn video nếu chưa sẵn sàng gửi chúng lên Drive.
+14. Bấm 3. Lưu và bắt đầu. Chờ khoảng 1–2 phút: file cần ổn định trước khi nhận vào hàng đợi, tốc độ upload phụ thuộc dung lượng và mạng. Kết quả đạt là Đã upload và xác minh; giữ bản local.
+15. Sếp xem web: máy xuất hiện, có trạng thái, lịch sử upload và số ảnh/video. Bấm máy → Gán nhân viên / đổi tên máy, đặt tên Mac01 và mã nhân viên NV001. Các máy của cùng người dùng cùng mã nhân viên để không đếm trùng nhân sự.
+16. Sau khi thử đạt, trên Mac bấm Dừng, chờ lượt hiện tại kết thúc rồi bấm Bật chạy nền tự động. Ứng dụng có thể tự đóng cửa sổ khi chạy nền thành công. Mỗi lần nhân viên đăng nhập macOS, worker tự chạy. Không bấm Tắt chạy nền khi vẫn muốn tiếp tục gửi file.
+17. Đợi khoảng 60 giây, mở Mac01 trên web để xem từng thư mục, số ảnh, video, dung lượng và hàng đợi. Báo cáo máy gửi trạng thái khoảng 15 giây/lần; quét thư mục khoảng 60 giây/lần. Chỉ tính trong thư mục đã chọn, không quét toàn bộ máy.
+
+D. NẾU MAC ĐÃ DÙNG BẢN DRIVEDROP CŨ
+
+18. Trong bản cũ, bấm Dừng; nếu chạy nền thì bấm Tắt chạy nền, chờ dừng rồi đóng ứng dụng. Mở bản 0.5.0 mới, giữ thư mục dữ liệu và Keychain. Nếu vẫn báo Đã kích hoạt thì không nhập lại JSON. Kiểm tra thư mục rồi bật chạy nền trong bản mới để cập nhật chương trình worker.
+19. Nếu trước đây Mac kết nối bằng IP nội bộ/NetBird và cần chuyển sang tên miền: hoàn tất hàng đợi cũ, Dừng và Tắt chạy nền; sếp cấp JSON mới trên web; trong ứng dụng chọn Đổi máy chủ rồi nhập JSON. Không xóa hàng đợi để ép đổi máy chủ.
+
+ĐÃ KIỂM TRA / CÒN CẦN THỬ
+
+Gói ZIP, mã chương trình và kết nối HTTPS với máy chủ đã được kiểm tra trên Windows. Chưa chạy trực tiếp trên macOS thật. Cài thử một Mac, kiểm tra upload và đếm thư mục trước khi phát cho toàn bộ nhân viên.
+
+THAM KHẢO CHÍNH THỨC
+Cloudflare public hostname: https://developers.cloudflare.com/tunnel/setup/
+Python trên macOS: https://docs.python.org/3/using/mac.html
+Mở ứng dụng chưa xác minh trên Mac: https://support.apple.com/en-gb/guide/mac-help/mh40616/mac
+NetBird chạy nền: https://docs.netbird.io/help/troubleshooting-client

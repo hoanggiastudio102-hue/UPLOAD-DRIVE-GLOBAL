@@ -1,0 +1,29 @@
+#!/bin/bash
+set -eu
+
+# Finder entry point. No terminal window or changes to macOS security settings.
+resources="$(cd "$(dirname "$0")/../Resources" && pwd -P)"
+python_bin=''
+for candidate in \
+  /Library/Frameworks/Python.framework/Versions/Current/bin/python3 \
+  /Library/Frameworks/Python.framework/Versions/3.14/bin/python3 \
+  /Library/Frameworks/Python.framework/Versions/3.13/bin/python3 \
+  /Library/Frameworks/Python.framework/Versions/3.12/bin/python3 \
+  /opt/homebrew/bin/python3 \
+  /usr/local/bin/python3
+do
+  if [ -x "$candidate" ] && "$candidate" -I -c 'import sys, tkinter; assert sys.version_info >= (3, 12); tkinter.Tcl()' >/dev/null 2>&1; then
+    python_bin="$candidate"
+    break
+  fi
+done
+
+if [ -z "$python_bin" ]; then
+  /usr/bin/osascript <<'APPLESCRIPT'
+set answer to button returned of (display dialog "Máy cần Python 3.12 trở lên có Tk để mở DriveDrop.\n\nBấm Mở trang tải, chọn bản Stable có bộ cài macOS .pkg, cài mặc định. Sau đó mở lại DriveDrop Employee.app.\n\nKhông cần đăng nhập Gmail tổng trên máy này." with title "DriveDrop — Cài Python một lần" buttons {"Đóng", "Mở trang tải"} default button "Mở trang tải")
+if answer is "Mở trang tải" then open location "https://www.python.org/downloads/macos/"
+APPLESCRIPT
+  exit 0
+fi
+
+exec "$python_bin" -I "$resources/bootstrap.py"
